@@ -1,6 +1,6 @@
 import './scss/styles.scss';
 
-import { categoryMap } from './utils/constants';
+import { API_URL, CDN_URL, categoryMap } from './utils/constants';
 import { IProduct } from './types';
 import { Products } from './components/base/Models/Products';
 import { Cart } from './components/base/Models/Cart';
@@ -15,7 +15,7 @@ const buyerModel = new Buyer();
 // ----------------------
 // API
 // ----------------------
-const api = new Api('https://example.com/api');
+const api = new Api(API_URL);
 const webLarekApi = new WebLarekApi(api);
 
 // ----------------------
@@ -70,7 +70,7 @@ if (price) {
 }
 
 if (image) {
-  image.src = product.image;
+  image.src = `${CDN_URL}${product.image}`;
   image.alt = product.title;
 }
 
@@ -156,10 +156,11 @@ if (price) {
 }
 
   if (description) description.textContent = product.description;
+
   if (image) {
-    image.src = product.image;
-    image.alt = product.title;
-  }
+  image.src = `${CDN_URL}${product.image}`;
+  image.alt = product.title;
+}
 
   // Кнопка "В корзину"
   if (addButton) {

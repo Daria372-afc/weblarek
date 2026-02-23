@@ -30,4 +30,15 @@ export interface IOrder {
   phone: string;
   address: string;
   items: string[];
+  total: number;
+}
+
+export interface IProductsResponse {
+  total: number;
+  items: IProduct[];
+}
+
+export interface IOrderResponse {
+  id: string;
+  total: number;
 }
