@@ -24,6 +24,8 @@ export interface IBuyer {
   address: string;
 }
 
+export type TBuyerErrors = Partial<Record<keyof IBuyer, string>>;
+
 export interface IOrder {
   payment: TPayment;
   email: string;

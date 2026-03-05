@@ -28,7 +28,4 @@ export class Header extends Component<unknown> {
     this.basketCounter.textContent = String(value);
   }
 
-  render(): HTMLElement {
-    return this.container;
-  }
 }

@@ -1,4 +1,3 @@
-import { IEvents } from '../base/Events';
 import { Component } from '../base/Component';
 import { ensureElement } from '../../utils/utils';
 import { IProduct } from '../../types';
@@ -9,7 +8,10 @@ export class CardBasket extends Component<IProduct> {
   protected deleteButton: HTMLButtonElement;
   protected indexElement: HTMLElement;
 
-  constructor(container: HTMLElement, protected events: IEvents) {
+  constructor(
+    container: HTMLElement,
+    actions: { onDelete: () => void }
+  ) {
     super(container);
 
     this.title = ensureElement<HTMLElement>('.card__title', container);
@@ -23,20 +25,24 @@ export class CardBasket extends Component<IProduct> {
       container
     );
 
-    this.deleteButton.addEventListener('click', () => {
-      const id = this.container.dataset.id;
-      if (id) {
-        this.events.emit('basket:remove', { id });
-      }
-    });
+    this.deleteButton.addEventListener('click', actions.onDelete);
   }
 
   render(data: IProduct & { index: number }): HTMLElement {
-    this.container.dataset.id = data.id;
 
     this.title.textContent = data.title;
-    this.price.textContent =
-      data.price !== null ? `${data.price} синапсов` : 'Недоступно';
+
+    if (data.price === null) {
+  this.price.textContent = 'Недоступно';
+} else {
+  const formatted =
+    data.price >= 10000
+      ? data.price.toLocaleString('ru-RU')
+      : data.price.toString();
+
+  this.price.textContent = `${formatted} синапсов`;
+}
+
     this.indexElement.textContent = String(data.index);
 
     return this.container;

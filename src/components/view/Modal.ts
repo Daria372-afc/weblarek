@@ -29,8 +29,15 @@ export class Modal extends Component<unknown> {
     this.closeButton.addEventListener('click', () => {
       this.close();
     });
+
+    // Закрытие по overlay
+    this.container.addEventListener('click', (event) => {
+      if (event.target === this.container) {
+        this.close();
+      }
+    });
   }
-  
+
   setContent(node: HTMLElement) {
     this.content.replaceChildren(node);
   }
@@ -42,9 +49,5 @@ export class Modal extends Component<unknown> {
   close() {
     this.container.classList.remove('modal_active');
     this.content.replaceChildren();
-  }
-
-  render(): HTMLElement {
-    return this.container;
   }
 }

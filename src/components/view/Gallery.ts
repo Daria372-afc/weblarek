@@ -10,7 +10,4 @@ export class Gallery extends Component<unknown> {
     this.container.replaceChildren(...items);
   }
 
-  render(): HTMLElement {
-    return this.container;
-  }
 }

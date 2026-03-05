@@ -29,15 +29,11 @@ export class Basket extends Component<unknown> {
   }
 
   set total(value: number) {
-  const formatted =
-    value >= 10000
-      ? value.toLocaleString('ru-RU')
-      : value.toString();
+    const formatted =
+      value >= 10000
+        ? value.toLocaleString('ru-RU')
+        : value.toString();
 
-  this.totalPrice.textContent = `${formatted} синапсов`;
-}
-
-  render(): HTMLElement {
-    return this.container;
+    this.totalPrice.textContent = `${formatted} синапсов`;
   }
 }

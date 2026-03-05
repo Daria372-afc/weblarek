@@ -16,6 +16,7 @@ import { Basket } from './components/view/Basket';
 import { Modal } from './components/view/Modal';
 import { CardCatalog } from './components/view/CardCatalog';
 import { CardPreview } from './components/view/CardPreview';
+import { CardBasket } from './components/view/CardBasket';
 import { OrderForm } from './components/view/OrderForm';
 import { ContactsForm } from './components/view/ContactsForm';
 
@@ -46,16 +47,42 @@ const modalElement = document.getElementById('modal-container') as HTMLElement;
 const modal = new Modal(modalElement, events);
 
 // ----------------------
+// Templates
+// ----------------------
+
+const cardCatalogTemplate = document.getElementById('card-catalog') as HTMLTemplateElement;
+const cardPreviewTemplate = document.getElementById('card-preview') as HTMLTemplateElement;
+const basketTemplate = document.getElementById('basket') as HTMLTemplateElement;
+const basketItemTemplate = document.getElementById('card-basket') as HTMLTemplateElement;
+const orderTemplate = document.getElementById('order') as HTMLTemplateElement;
+const contactsTemplate = document.getElementById('contacts') as HTMLTemplateElement;
+const successTemplate = document.getElementById('success') as HTMLTemplateElement;
+
+// ----------------------
+// Instances
+// ----------------------
+
+const previewNode = cardPreviewTemplate.content.firstElementChild!.cloneNode(true) as HTMLElement;
+const cardPreview = new CardPreview(previewNode, events);
+
+const orderNode = orderTemplate.content.firstElementChild!.cloneNode(true) as HTMLFormElement;
+const orderForm = new OrderForm(orderNode, events);
+
+const contactsNode = contactsTemplate.content.firstElementChild!.cloneNode(true) as HTMLFormElement;
+const contactsForm = new ContactsForm(contactsNode, events);
+
+// ----------------------
 // События моделей
 // ----------------------
 
 // Обновление каталога
 events.on('products:changed', () => {
   const cards = productsModel.getProducts().map(product => {
-    const template = document.getElementById('card-catalog') as HTMLTemplateElement;
-    const node = template.content.firstElementChild!.cloneNode(true) as HTMLElement;
+
+    const node = cardCatalogTemplate.content.firstElementChild!.cloneNode(true) as HTMLElement;
 
     const card = new CardCatalog(node, events);
+
     return card.render(product);
   });
 
@@ -67,12 +94,7 @@ events.on('product:selected', () => {
   const product = productsModel.getSelectedProduct();
   if (!product) return;
 
-  const template = document.getElementById('card-preview') as HTMLTemplateElement;
-  const node = template.content.firstElementChild!.cloneNode(true) as HTMLElement;
-
-  const card = new CardPreview(node, events);
-
-  const element = card.render({
+  const element = cardPreview.render({
     ...product,
     inBasket: cartModel.hasItem(product.id)
   });
@@ -84,17 +106,28 @@ events.on('product:selected', () => {
 // Изменение корзины
 events.on('basket:changed', () => {
   header.counter = cartModel.getItemsCount();
-
-  if (modal.render().classList.contains('modal_active')) {
-    renderBasket();
-  }
+  renderBasket();
 });
 
 // Изменение данных покупателя
 events.on('buyer:changed', () => {
   const errors = buyerModel.validate();
-  const isValid = Object.keys(errors).length === 0;
-  const errorText = Object.values(errors).join(', ');
+  const isValid = !errors.payment && !errors.address;
+
+const buyer = buyerModel.getData();
+
+orderForm.payment = buyer.payment;
+orderForm.address = buyer.address;
+
+  let errorText = '';
+
+if (errors.payment) {
+  errorText = errors.payment;
+}
+
+if (errors.address) {
+  errorText = errors.address;
+}
 
   const formElement = document.querySelector('#modal-container form');
   if (!formElement) return;
@@ -111,41 +144,26 @@ events.on('buyer:changed', () => {
 // ----------------------
 
 function renderBasket() {
-  const template = document.getElementById('basket') as HTMLTemplateElement;
-  const node = template.content.firstElementChild!.cloneNode(true) as HTMLElement;
+
+  const node = basketTemplate.content.firstElementChild!.cloneNode(true) as HTMLElement;
 
   const basketView = new Basket(node, events);
 
   const items = cartModel.getItems().map((product, index) => {
-    const itemTemplate = document.getElementById('card-basket') as HTMLTemplateElement;
-    const itemNode = itemTemplate.content.firstElementChild!.cloneNode(true) as HTMLElement;
 
-    const title = itemNode.querySelector('.card__title');
-    const price = itemNode.querySelector('.card__price');
-    const indexElement = itemNode.querySelector('.basket__item-index');
-    const deleteButton = itemNode.querySelector('.basket__item-delete');
+    const itemNode = basketItemTemplate.content.firstElementChild!.cloneNode(true) as HTMLElement;
 
-    if (title) title.textContent = product.title;
-
-    if (price) {
-      const formatted =
-        product.price !== null && product.price >= 10000
-          ? product.price.toLocaleString('ru-RU')
-          : product.price?.toString();
-
-      price.textContent =
-        product.price !== null
-          ? `${formatted} синапсов`
-          : 'Бесценно';
-    }
-
-    if (indexElement) indexElement.textContent = String(index + 1);
-
-    deleteButton?.addEventListener('click', () => {
-      cartModel.removeItem(product);
+    const card = new CardBasket(itemNode, {
+      onDelete: () => {
+        cartModel.removeItem(product);
+      }
     });
 
-    return itemNode;
+    return card.render({
+      ...product,
+      index: index + 1
+    });
+
   });
 
   basketView.items = items;
@@ -154,7 +172,6 @@ function renderBasket() {
   modal.setContent(basketView.render());
   modal.open();
 }
-
 
 // Открыть корзину
 events.on('basket:open', () => {
@@ -189,12 +206,7 @@ events.on('card:remove', (data: { id: string }) => {
 
 // Начало оформления
 events.on('order:start', () => {
-  const template = document.getElementById('order') as HTMLTemplateElement;
-  const node = template.content.firstElementChild!.cloneNode(true) as HTMLFormElement;
-
-  const form = new OrderForm(node, events);
-
-  modal.setContent(form.render());
+  modal.setContent(orderForm.render());
   modal.open();
 });
 
@@ -205,43 +217,40 @@ events.on('form:change', (data: any) => {
 
 // Переход ко второй форме
 events.on('order:next', () => {
-  const template = document.getElementById('contacts') as HTMLTemplateElement;
-  const node = template.content.firstElementChild!.cloneNode(true) as HTMLFormElement;
-
-  const form = new ContactsForm(node, events);
-  modal.setContent(form.render());
+  modal.setContent(contactsForm.render());
 });
 
 // Завершение заказа
 events.on('order:submit', async () => {
   try {
-    const totalPrice = cartModel.getTotalPrice(); // сохраняем сумму ДО очистки
+
+    const totalPrice = cartModel.getTotalPrice();
+    const buyer = buyerModel.getData();
 
     await webLarekApi.postOrder({
-      payment: buyerModel.getData().payment as TPayment,
-      email: buyerModel.getData().email,
-      phone: buyerModel.getData().phone,
-      address: buyerModel.getData().address,
+      payment: buyer.payment as TPayment,
+      email: buyer.email,
+      phone: buyer.phone,
+      address: buyer.address,
       items: cartModel.getItems().map(item => item.id),
       total: totalPrice
     });
 
-    const template = document.getElementById('success') as HTMLTemplateElement;
-    const node = template.content.firstElementChild!.cloneNode(true) as HTMLElement;
+    const node = successTemplate.content.firstElementChild!.cloneNode(true) as HTMLElement;
 
-    // Вставляем корректную сумму
     const description = node.querySelector('.order-success__description');
+
     if (description) {
       const formatted =
-  totalPrice >= 10000
-    ? totalPrice.toLocaleString('ru-RU')
-    : totalPrice.toString();
+        totalPrice >= 10000
+          ? totalPrice.toLocaleString('ru-RU')
+          : totalPrice.toString();
 
-description.textContent = `Списано ${formatted} синапсов`;
+      description.textContent = `Списано ${formatted} синапсов`;
     }
 
-    // Кнопка "За новыми покупками"
     const closeButton = node.querySelector('.order-success__close');
+
     closeButton?.addEventListener('click', () => {
       cartModel.clear();
       buyerModel.clear();
