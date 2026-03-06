@@ -136,3 +136,13 @@ export function createElement<
     }
     return element;
 }
+
+ export function formatPrice(price: number | null): string {
+  if (price === null) {
+    return 'Бесценно';
+  }
+
+  return price >= 10000
+    ? price.toLocaleString('ru-RU')
+    : price.toString();
+}

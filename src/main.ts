@@ -1,6 +1,6 @@
 import './scss/styles.scss';
 
-import { API_URL } from './utils/constants';
+import { API_URL, CDN_URL, categoryMap } from './utils/constants';
 import { TPayment } from './types';
 import { EventEmitter } from './components/base/Events';
 import { Api } from './components/base/Api';
@@ -81,9 +81,26 @@ events.on('products:changed', () => {
 
     const node = cardCatalogTemplate.content.firstElementChild!.cloneNode(true) as HTMLElement;
 
-    const card = new CardCatalog(node, events);
+    const card = new CardCatalog(node, {
+  onClick: () => {
+    events.emit('card:select', { id: product.id });
+  }
+});
 
-    return card.render(product);
+card.titleValue = product.title;
+card.priceValue = product.price;
+
+(card as any).setImage((card as any).image, `${CDN_URL}${product.image}`, product.title);
+
+(card as any).category.textContent = product.category;
+(card as any).category.className = 'card__category';
+
+const modifier = categoryMap[product.category as keyof typeof categoryMap];
+if (modifier) {
+  (card as any).category.classList.add(modifier);
+}
+
+return card.render();
   });
 
   gallery.catalog = cards;
@@ -159,10 +176,11 @@ function renderBasket() {
       }
     });
 
-    return card.render({
-      ...product,
-      index: index + 1
-    });
+    card.titleValue = product.title;
+    card.priceValue = product.price;
+    card.index = index + 1;
+
+return card.render();
 
   });
 
@@ -202,6 +220,19 @@ events.on('card:remove', (data: { id: string }) => {
     cartModel.removeItem(product);
     modal.close();
   }
+});
+
+events.on('preview:toggle', () => {
+  const product = productsModel.getSelectedProduct();
+  if (!product) return;
+
+  if (cartModel.hasItem(product.id)) {
+    cartModel.removeItem(product);
+  } else {
+    cartModel.addItem(product);
+  }
+
+  modal.close();
 });
 
 // Начало оформления

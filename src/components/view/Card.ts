@@ -1,5 +1,5 @@
 import { Component } from '../base/Component';
-import { ensureElement } from '../../utils/utils';
+import { ensureElement, formatPrice } from '../../utils/utils';
 import { IProduct } from '../../types';
 
 export abstract class Card extends Component<IProduct> {
@@ -18,15 +18,12 @@ export abstract class Card extends Component<IProduct> {
   }
 
   set priceValue(value: number | null) {
-    if (value === null) {
-      this.price.textContent = 'Бесценно';
-    } else {
-      const formatted =
-        value >= 10000
-          ? value.toLocaleString('ru-RU')
-          : value.toString();
+  const price = formatPrice(value);
 
-      this.price.textContent = `${formatted} синапсов`;
-    }
+  if (value === null) {
+    this.price.textContent = price;
+  } else {
+    this.price.textContent = `${price} синапсов`;
   }
+}
 }
