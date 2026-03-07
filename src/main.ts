@@ -1,6 +1,7 @@
 import './scss/styles.scss';
 
-import { API_URL, CDN_URL, categoryMap } from './utils/constants';
+import { Success } from './components/view/Success';
+import { API_URL } from './utils/constants';
 import { TPayment } from './types';
 import { EventEmitter } from './components/base/Events';
 import { Api } from './components/base/Api';
@@ -71,6 +72,12 @@ const orderForm = new OrderForm(orderNode, events);
 const contactsNode = contactsTemplate.content.firstElementChild!.cloneNode(true) as HTMLFormElement;
 const contactsForm = new ContactsForm(contactsNode, events);
 
+const basketNode = basketTemplate.content.firstElementChild!.cloneNode(true) as HTMLElement;
+const basketView = new Basket(basketNode, events);
+
+const successNode = successTemplate.content.firstElementChild!.cloneNode(true) as HTMLElement;
+const successView = new Success(successNode, events);
+
 // ----------------------
 // События моделей
 // ----------------------
@@ -90,15 +97,9 @@ events.on('products:changed', () => {
 card.titleValue = product.title;
 card.priceValue = product.price;
 
-(card as any).setImage((card as any).image, `${CDN_URL}${product.image}`, product.title);
+card.imageUrl = product.image;
 
-(card as any).category.textContent = product.category;
-(card as any).category.className = 'card__category';
-
-const modifier = categoryMap[product.category as keyof typeof categoryMap];
-if (modifier) {
-  (card as any).category.classList.add(modifier);
-}
+card.categoryValue = product.category;
 
 return card.render();
   });
@@ -111,10 +112,17 @@ events.on('product:selected', () => {
   const product = productsModel.getSelectedProduct();
   if (!product) return;
 
-  const element = cardPreview.render({
-    ...product,
+  cardPreview.titleValue = product.title;
+  cardPreview.priceValue = product.price;
+  cardPreview.imageUrl = product.image;
+  cardPreview.categoryValue = product.category;
+
+  cardPreview.buttonState = {
+    price: product.price,
     inBasket: cartModel.hasItem(product.id)
-  });
+  };
+
+  const element = cardPreview.render();
 
   modal.setContent(element);
   modal.open();
@@ -136,6 +144,9 @@ const buyer = buyerModel.getData();
 orderForm.payment = buyer.payment;
 orderForm.address = buyer.address;
 
+contactsForm.email = buyer.email;
+contactsForm.phone = buyer.phone;
+
   let errorText = '';
 
 if (errors.payment) {
@@ -146,14 +157,11 @@ if (errors.address) {
   errorText = errors.address;
 }
 
-  const formElement = document.querySelector('#modal-container form');
-  if (!formElement) return;
+orderForm.valid = isValid;
+orderForm.errorMessages = errorText;
 
-  const submit = formElement.querySelector('button[type="submit"]') as HTMLButtonElement;
-  const errorBlock = formElement.querySelector('.form__errors') as HTMLElement;
-
-  if (submit) submit.disabled = !isValid;
-  if (errorBlock) errorBlock.textContent = errorText;
+contactsForm.valid = isValid;
+contactsForm.errorMessages = errorText;
 });
 
 // ----------------------
@@ -161,10 +169,6 @@ if (errors.address) {
 // ----------------------
 
 function renderBasket() {
-
-  const node = basketTemplate.content.firstElementChild!.cloneNode(true) as HTMLElement;
-
-  const basketView = new Basket(node, events);
 
   const items = cartModel.getItems().map((product, index) => {
 
@@ -235,6 +239,13 @@ events.on('preview:toggle', () => {
   modal.close();
 });
 
+events.on('order:success-close', () => {
+  cartModel.clear();
+  buyerModel.clear();
+  header.counter = 0;
+  modal.close();
+});
+
 // Начало оформления
 events.on('order:start', () => {
   modal.setContent(orderForm.render());
@@ -267,28 +278,9 @@ events.on('order:submit', async () => {
       total: totalPrice
     });
 
-    const node = successTemplate.content.firstElementChild!.cloneNode(true) as HTMLElement;
+    successView.total = totalPrice;
 
-    const description = node.querySelector('.order-success__description');
-
-    if (description) {
-      const formatted =
-        totalPrice >= 10000
-          ? totalPrice.toLocaleString('ru-RU')
-          : totalPrice.toString();
-
-      description.textContent = `Списано ${formatted} синапсов`;
-    }
-
-    const closeButton = node.querySelector('.order-success__close');
-
-    closeButton?.addEventListener('click', () => {
-      cartModel.clear();
-      buyerModel.clear();
-      modal.close();
-    });
-
-    modal.setContent(node);
+    modal.setContent(successView.render());
     modal.open();
 
   } catch (error) {
