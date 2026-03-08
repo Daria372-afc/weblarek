@@ -41,5 +41,10 @@ export abstract class Form<T> extends Component<T> {
     this.errors.textContent = value;
   }
 
+  setErrors(...errors: (string | undefined)[]) {
+  const filtered = errors.filter(Boolean) as string[];
+  this.errors.textContent = filtered.join(', ');
+}
+
   protected abstract onSubmit(): void;
 }

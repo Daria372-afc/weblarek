@@ -137,7 +137,6 @@ events.on('basket:changed', () => {
 // Изменение данных покупателя
 events.on('buyer:changed', () => {
   const errors = buyerModel.validate();
-  const isValid = !errors.payment && !errors.address;
 
 const buyer = buyerModel.getData();
 
@@ -147,21 +146,20 @@ orderForm.address = buyer.address;
 contactsForm.email = buyer.email;
 contactsForm.phone = buyer.phone;
 
-  let errorText = '';
+orderForm.valid = !errors.payment && !errors.address;
+contactsForm.valid = !errors.email && !errors.phone;
 
-if (errors.payment) {
-  errorText = errors.payment;
+orderForm.setErrors(
+  errors.address || undefined,
+  errors.payment || undefined
+);
+
+if (buyer.email || buyer.phone) {
+  contactsForm.setErrors(
+    errors.email || undefined,
+    errors.phone || undefined
+  );
 }
-
-if (errors.address) {
-  errorText = errors.address;
-}
-
-orderForm.valid = isValid;
-orderForm.errorMessages = errorText;
-
-contactsForm.valid = isValid;
-contactsForm.errorMessages = errorText;
 });
 
 // ----------------------
@@ -240,9 +238,6 @@ events.on('preview:toggle', () => {
 });
 
 events.on('order:success-close', () => {
-  cartModel.clear();
-  buyerModel.clear();
-  header.counter = 0;
   modal.close();
 });
 
@@ -277,6 +272,12 @@ events.on('order:submit', async () => {
       items: cartModel.getItems().map(item => item.id),
       total: totalPrice
     });
+
+    cartModel.clear();
+    buyerModel.clear();
+
+    orderForm.setErrors();
+    contactsForm.setErrors();
 
     successView.total = totalPrice;
 
